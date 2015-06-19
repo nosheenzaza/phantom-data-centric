@@ -57,7 +57,10 @@ class RootCreateQuery[
   }
 
   private[phantom] def toQuery()(implicit keySpace: KeySpace): CreateQuery.Default[Table, Record] = {
-    new CreateQuery[Table, Record, Unspecified](table, default, Defaults.EmptyWithPart)
+    println("the CQL create query, it should match that in the slides")
+    val cq = new CreateQuery[Table, Record, Unspecified](table, default, Defaults.EmptyWithPart)
+    println(cq)
+    cq
   }
 
 
