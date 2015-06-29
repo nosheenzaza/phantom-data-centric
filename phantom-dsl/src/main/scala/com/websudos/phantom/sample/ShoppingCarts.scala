@@ -19,7 +19,7 @@ import scala.concurrent.{Future => ScalaFuture}
  * This is a example of a wide row schema. Each item in a cart is a new column.
  */
 trait ShoppingCartConnector extends SimpleConnector {
-  override implicit val keySpace = KeySpace("recipes")
+  override implicit val keySpace = KeySpace("bookstore")
   /*
    * Unless you uncomment the lower part, the client will attempt to connect to localhost
    */
@@ -31,7 +31,7 @@ trait ShoppingCartConnector extends SimpleConnector {
 case class ShoppingCartItem(
  user_name: String,
  cart_name: String,
- item_id: UUID, // or int?
+ item_id: String, // or int?
  item_name: String,
  description: String,
  price: Float
@@ -49,12 +49,11 @@ sealed class ShoppingCarts extends CassandraTable[ShoppingCarts, ShoppingCartIte
   // instruct CQL to store in a wide-row manner
   object user_name extends StringColumn(this) with PartitionKey[String]
   object cart_name extends StringColumn(this) with PartitionKey[String]
-  object item_id extends UUIDColumn(this)  with PrimaryKey[UUID]
+  object item_id extends StringColumn(this)  with PrimaryKey[String]
   object item_name extends StringColumn(this)
   object description extends StringColumn(this)
   object price extends FloatColumn(this)
 
-  //TODO test this class to see if we retrieve the dynamic column correctly
   def fromRow(row: Row): ShoppingCartItem = {
     ShoppingCartItem(
       user_name(row),
@@ -78,7 +77,7 @@ object ShoppingCarts extends ShoppingCarts with ShoppingCartConnector {
    * because they are the key and this is how we create the wide
    * row, let's see if this is the case. 
    */
-  def insertItemBlocking(item: ShoppingCartItem) {
+  def insertItemBlocking(item: ShoppingCartItem): Future[ResultSet] =  {
     Await.ready(insert
     .value(_.user_name, item.user_name)
     .value(_.cart_name, item.cart_name)
@@ -98,14 +97,3 @@ object ShoppingCarts extends ShoppingCarts with ShoppingCartConnector {
   }
     
 }
-
-
-
-
-
-
-
-
-
-
-

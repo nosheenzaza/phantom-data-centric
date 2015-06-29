@@ -1,0 +1,4 @@
+<plugin>
+  <name>as</name>
+  <classname>ch.usi.inf.testplugin.TestPlugin</classname>
+</plugin>

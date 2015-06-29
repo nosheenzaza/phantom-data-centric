@@ -22,14 +22,14 @@ import com.websudos.phantom.sample.RecipesDatabaseService
 class ShoppingCartTest extends FlatSpec with Matchers {
   val cartItem1 = ShoppingCartItem(
     "nosheen", "movies",
-    UUID.randomUUID(),
+    "greatgatsby",
     "The Great Gatsby",
     "A movie about Mr Gatsby",
     12.0F)
 
   val cartItem2 = ShoppingCartItem(
     "nosheen", "movies",
-    UUID.randomUUID(),
+    "badteacher",
     "Bad Teacher",
     "Funny and funny",
     13.0F)

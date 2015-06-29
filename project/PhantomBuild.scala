@@ -32,9 +32,10 @@ import com.twitter.sbt._
 import com.twitter.scrooge.ScroogeSBT
 import sbt.Keys._
 import sbt._
+import sbtassembly.AssemblyPlugin.autoImport._
 
 object PhantomBuild extends Build {
-
+  val paradiseVersion = "2.0.0"
   val UtilVersion = "0.9.6"
   val DatastaxDriverVersion = "2.1.5"
   val ScalaTestVersion = "2.2.4"
@@ -102,10 +103,10 @@ object PhantomBuild extends Build {
 
 
   val sharedSettings: Seq[Def.Setting[_]] = Defaults.coreDefaultSettings ++ Seq(
-	retrieveManaged := true,
+	// retrieveManaged := true,
     organization := "com.websudos",
     version := "1.9.7",
-    scalaVersion := "2.11.6",
+    scalaVersion := "2.11.1",
     crossScalaVersions := Seq("2.10.5", "2.11.6"),
     resolvers ++= Seq(
       "Typesafe repository snapshots" at "http://repo.typesafe.com/typesafe/snapshots/",
@@ -116,6 +117,7 @@ object PhantomBuild extends Build {
       "Sonatype staging"                 at "http://oss.sonatype.org/content/repositories/staging",
       "Java.net Maven2 Repository"       at "http://download.java.net/maven/2/",
       "Twitter Repository"               at "http://maven.twttr.com",
+	  "Piuma’s Repo"                     at "http://inf.usi.ch/phd/sherwany/repos/piuma",
       Resolver.bintrayRepo("websudos", "oss-releases")
     ),
     scalacOptions ++= Seq(
@@ -196,6 +198,52 @@ object PhantomBuild extends Build {
       phantomTestKit % "test, provided",
       phantomConnectors
     )
+
+  lazy val phantomConsistencyPlugin = Project(
+      id = "phantom-plugin",
+      base = file("phantom-consistency-plugin"),
+      settings = Defaults.coreDefaultSettings ++
+        sharedSettings
+    ).settings(
+		artifact in (Compile, assembly) := {
+		  val art = (artifact in (Compile, assembly)).value
+		  art.copy(`classifier` = Some("assembly"))
+		},
+		addArtifact(artifact in (Compile, assembly), assembly),
+		
+        name := "phantom-plugin",
+        fork := true,
+        libraryDependencies ++= Seq(
+          "org.scala-lang"               %  "scala-reflect"                     % scalaVersion.value,
+          "ch.usi.inf.l3" %% "piuma" % "0.1-SNAPSHOT"
+
+      ),
+	  addCompilerPlugin("org.scalamacros" % "paradise" %
+	        paradiseVersion cross CrossVersion.full)
+	  )
+	  // .dependsOn(
+	  // phantomTestKit % "test, provided",
+	  //       phantomDsl
+    // )
+
+    lazy val phantomConsistencyPluginTest = Project(
+        id = "phantom-plugin-test",
+        base = file("phantom-consistency-plugin-test"),
+        settings = Defaults.coreDefaultSettings ++
+          sharedSettings
+      ).settings(
+		  autoCompilerPlugins := true,
+          name := "phantom-plugin-test",
+          libraryDependencies ++= Seq(
+            "org.scala-lang"               %  "scala-reflect"                     % scalaVersion.value,
+            "ch.usi.inf.l3" %% "piuma" % "0.1-SNAPSHOT"),
+		  addCompilerPlugin("com.websudos" %% "phantom-plugin" % "1.9.7"  classifier "assembly" changing())
+  	  )
+  	  .dependsOn(
+		phantomTestKit % "test, provided",
+        phantomDsl
+      )
+
 
   lazy val phantomConnectors = Project(
     id = "phantom-connectors",
