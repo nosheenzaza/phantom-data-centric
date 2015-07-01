@@ -4,6 +4,7 @@ import java.util.UUID
 import com.websudos.phantom.iteratee.Iteratee
 import scala.concurrent.{ Future => ScalaFuture }
 import com.datastax.driver.core.{ ResultSet, Row }
+import com.datastax.driver.mapping.annotations.Table
 import com.websudos.phantom.dsl._
 import com.twitter.conversions.time._
 import com.twitter.util.{Await, Future}
@@ -39,6 +40,7 @@ case class Recipe(
  ingredients: Set[String]
 )
 
+@Table(name = "main_recipes", writeConsistency = "ONE")
 sealed class Recipes extends CassandraTable[Recipes, Recipe] {
   object id extends  UUIDColumn(this) with PartitionKey[UUID] {
   override lazy val name = "id"
@@ -65,7 +67,8 @@ object Recipes extends Recipes with RecipesConnector {
   override lazy val tableName = "main_recipes"
 
   def insertRecipe(recipe: Recipe): ScalaFuture[ResultSet] = {
-    insert.value(_.id, recipe.id)
+    insert.consistencyLevel_=(ConsistencyLevel.ONE)
+      .value(_.id, recipe.id)
       .value(_.title, recipe.title)
       .value(_.author, recipe.author)
       .value(_.description, recipe.description)
@@ -76,6 +79,10 @@ object Recipes extends Recipes with RecipesConnector {
   }
   def getRecipeById(id: UUID): ScalaFuture[Option[Recipe]] = {
     select.where(_.id eqs id).one()
+  }
+  
+  def getRecipeNameAuthorById(id: UUID): ScalaFuture[Option[(String, String)]] = {
+    select(_.name, _.author).where(_.id eqs id).one()
   }
   
   def getEntireTable: ScalaFuture[Seq[Recipe]] = {
@@ -110,7 +117,7 @@ object RecipesByTitle extends RecipesByTitle with RecipesConnector {
 
 
   def insertRecipe(recipe: (String, UUID)): ScalaFuture[ResultSet] = {
-    insert.value(_.title, recipe._1).value(_.id, recipe._2).future()
+    insert.value(_.title, recipe._1).value(_.id, recipe._2).consistencyLevel_=(ConsistencyLevel.ONE).future()
   }
 
   def getRecipeByTitle(title: String): ScalaFuture[Option[(String, UUID)]] = {

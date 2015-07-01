@@ -215,6 +215,7 @@ object PhantomBuild extends Build {
         fork := true,
         libraryDependencies ++= Seq(
           "org.scala-lang"               %  "scala-reflect"                     % scalaVersion.value,
+		  "com.datastax.cassandra"       %  "cassandra-driver-mapping"             % DatastaxDriverVersion,
           "ch.usi.inf.l3" %% "piuma" % "0.1-SNAPSHOT"
 
       ),
@@ -236,6 +237,7 @@ object PhantomBuild extends Build {
           name := "phantom-plugin-test",
           libraryDependencies ++= Seq(
             "org.scala-lang"               %  "scala-reflect"                     % scalaVersion.value,
+			"com.datastax.cassandra"       %  "cassandra-driver-mapping"             % DatastaxDriverVersion,
             "ch.usi.inf.l3" %% "piuma" % "0.1-SNAPSHOT"),
 		  addCompilerPlugin("com.websudos" %% "phantom-plugin" % "1.9.7"  classifier "assembly" changing())
   	  )
