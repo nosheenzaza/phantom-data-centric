@@ -7,7 +7,9 @@ import com.datastax.driver.mapping.annotations.Table
  * 
  * TODO test this with the should compile and should not compile stuff.
  */
+
+@Table(name = "main_recipes", writeConsistency = "ONE")
 class FaultyTarget {
-  @Table(name = "main_recipes", writeConsistency = "ONE")val faulty = 
-    "Not correct to have an annotation here."
+//  @Table(name = "main_recipes", writeConsistency = "ONE")val faulty = 
+//    "Not correct to have an annotation here."
 }

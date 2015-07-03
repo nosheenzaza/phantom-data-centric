@@ -40,7 +40,7 @@ case class Recipe(
  ingredients: Set[String]
 )
 
-@Table(name = "main_recipes", writeConsistency = "ONE")
+@Table(name = "main_recipes", writeConsistency = "ONE") 
 sealed class Recipes extends CassandraTable[Recipes, Recipe] {
   object id extends  UUIDColumn(this) with PartitionKey[UUID] {
   override lazy val name = "id"
@@ -67,7 +67,7 @@ object Recipes extends Recipes with RecipesConnector {
   override lazy val tableName = "main_recipes"
 
   def insertRecipe(recipe: Recipe): ScalaFuture[ResultSet] = {
-    insert.consistencyLevel_=(ConsistencyLevel.ONE)
+    Recipes.insert.consistencyLevel_=(ConsistencyLevel.ALL)
       .value(_.id, recipe.id)
       .value(_.title, recipe.title)
       .value(_.author, recipe.author)
@@ -117,7 +117,7 @@ object RecipesByTitle extends RecipesByTitle with RecipesConnector {
 
 
   def insertRecipe(recipe: (String, UUID)): ScalaFuture[ResultSet] = {
-    insert.value(_.title, recipe._1).value(_.id, recipe._2).consistencyLevel_=(ConsistencyLevel.ONE).future()
+    insert.value(_.title, recipe._1).value(_.id, recipe._2).future()
   }
 
   def getRecipeByTitle(title: String): ScalaFuture[Option[(String, UUID)]] = {

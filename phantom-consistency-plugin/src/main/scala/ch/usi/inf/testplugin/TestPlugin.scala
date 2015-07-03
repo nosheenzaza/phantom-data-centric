@@ -22,35 +22,109 @@ object Commons{
   val tableAnnoName = "com.datastax.driver.mapping.annotations.Table" 
   
 }
-@plugin(TestPluginComponent1) class TestPlugin {
+@plugin(TestPluginComponent2) class TestPlugin {
   val name: String = "phantom-consistency-analysis"
   describe("Assign consistency levels to operations based on data-centric policies")
   val beforeFinder = utilities.PHASE_PATMAT
 }
 
+/*
+ * TODO it seems like scala does not know what is the annotation target.
+ * Thus it was not possible for me to check that the annotations
+ * appear on the correct trees! 
+ * 
+ * I might try with scala annotations later but this is not a priority for now.
+ */
 @checker("check-annotation-targets") class TestPluginComponent1 {
   import ch.usi.inf.testplugin.Commons._
+  
   after(List(PHASE_TYPER))
 
   def check(unit: CompilationUnit): Unit = {
-    val tableAnnotatedTrees = unit.body.filter(
-        x => getAnnotationInfo(x, tableAnnoName) != None)
-        
-   /* 
-    * Split to classes having Table annotation and other nodes
-    * having it. Only ClassDefs can have this annotation
-    */     
-    val classDefOthers: (List[Tree], List[Tree]) = 
-      tableAnnotatedTrees.foldLeft( ( List[Tree]() , List[Tree]() ) ) ( (c,r) =>
-        if(r.isInstanceOf[ClassDef]) (r :: c._1, c._2)  else (c._1, r :: c._2) )
     
+    /*
+     * The problem here is that almost all contained elements 
+     * appear to have this annotation as well. 
+     */
+    val tableAnnotatedTrees = unit.body.filter(
+        x => getAnnotationInfo(x.symbol, tableAnnoName) != None)
+
+    val classDefOthers=
+      tableAnnotatedTrees.groupBy(x => x.isInstanceOf[ClassDef])
+
     // report errors for nodes having the wrong annotation.
-    classDefOthers._2.foreach( tree => unit.error(tree.pos, "Cannot have " + tableAnnoName+ " annotation!"))
+    classDefOthers.getOrElse(false, Nil).foreach(
+      tree => unit.error(
+        tree.pos, "The element cannot have " + tableAnnoName + " annotation!"))
         
-//    annotatedClasses.foreach(x => println(x + "Has an annotation"))
+   val annotatedClasses = classDefOthers.getOrElse(true, Nil)
+   
+//   val apply = unit.body.filter(x => x match { case Apply(_,_) => true ; case _ => false })
+//   apply.foreach(println)
+   
   }
   
 }
+
+@checker("check-annotation-targets") class TestPluginComponent2 {
+  import ch.usi.inf.testplugin.Commons._
+  
+  // FIXME The phase runs after typer only because the previous checker is 
+  // not included for now.
+  after(List(PHASE_TYPER))
+
+  def check(unit: CompilationUnit): Unit = {
+
+    // Get class term names in compilation unit.
+    val tableAnnotatedClasses = unit.body.filter(
+      x => {
+        getAnnotationInfo(x.symbol, tableAnnoName) != None &&
+          x.isInstanceOf[ClassDef]
+      })
+
+    val classTermNames = tableAnnotatedClasses.map( x => x.symbol.name.toTermName)
+
+    // Get insert statements TODO add all other modificatin statements other than DDL. 
+    val apply = unit.body.filter( 
+        tree => classTermNames.exists( 
+            x => tree match {
+              case Apply(Select(Ident(`x`), TermName("insert")), _) => true
+              case _ => false }))
+    println("Raw Apply")
+    apply.foreach(x => println(x + "RAW: " + showRaw(x)))
+
+//    object traverser extends Traverser {
+//      override def traverse(tree: Tree): Option[tree] = {
+//        tree match {
+//          case cl @ TermName("consistencyLevel_$eq") => Some(cl)
+//          case _ => super.traverse(tree)
+//        }
+//        None
+//      }
+//    }
+
+  }
+  
+}
+
+//@treeTransformer("c") class TestPluginComponent2 {
+//  // override val runsRightAfter = Some(plgn.utilities.PHASE_INLINER)
+//  // override val runsAfter = List[String](plgn.utilities.PHASE_INLINER)
+//
+//  after(List(PHASE_INLINER))
+//  // after(List(plgn.utilities.PHASE_INLINER))
+//
+//
+//  def transform(tree: Tree): Tree = {
+//    tree match {
+//      case x: ValDef =>
+//        println("HERE HERE " + x.symbol.attachments)
+//        super.transform(x)
+//      case x => super.transform(x)
+//    }
+//  }
+//}
+
 
 
 //@treeTransformer("test") class TestPluginComponent {
@@ -100,25 +174,6 @@ object Commons{
 //  }
 //}
 //
-//// class TestPluginComponent2(plgn: TestPlugin) extends TransformerPluginComponent(plgn) {
-//
-//@treeTransformer("test2") class TestPluginComponent2 {
-//  // override val runsRightAfter = Some(plgn.utilities.PHASE_INLINER)
-//  // override val runsAfter = List[String](plgn.utilities.PHASE_INLINER)
-//
-//  after(List(PHASE_INLINER))
-//  // after(List(plgn.utilities.PHASE_INLINER))
-//
-//
-//  def transform(tree: Tree): Tree = {
-//    tree match {
-//      case x: ValDef =>
-//        println("HERE HERE " + x.symbol.attachments)
-//        super.transform(x)
-//      case x => super.transform(x)
-//    }
-//  }
-//}
 
 
 
